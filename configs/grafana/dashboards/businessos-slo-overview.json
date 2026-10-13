@@ -1,67 +1,75 @@
 {
   "uid": "businessos-slo-overview",
-  "title": "SLO Overview (Recording Rules)",
+  "title": "SLO Overview",
   "tags": ["businessos", "slo", "recording-rules", "enterprise"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
-  "refresh": "1m",
+  "version": 2,
+  "refresh": "30s",
   "panels": [
     {
-      "title": "Payment Error Ratio",
+      "title": "Payment Error Ratio (SLO < 1%)",
       "type": "gauge",
-      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+      "gridPos": {"h": 7, "w": 6, "x": 0, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "businessos:payment_error_ratio:rate5m", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.01}, {"color": "red", "value": 0.05}]}}}
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 0.1, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.005}, {"color": "red", "value": 0.01}]}, "mappings": []}}
     },
     {
-      "title": "Fraud Decline Ratio",
+      "title": "Fraud Decline Ratio (SLO < 15%)",
       "type": "gauge",
-      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+      "gridPos": {"h": 7, "w": 6, "x": 6, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "businessos:fraud_decline_ratio:rate5m", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.1}, {"color": "red", "value": 0.3}]}}}
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 0.5, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.1}, {"color": "red", "value": 0.15}]}}}
     },
     {
-      "title": "HTTP 5xx Ratio (by job)",
+      "title": "HTTP 5xx Ratio by Engine",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "businessos:http_error_ratio:rate5m", "legendFormat": "{{job}}", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "percentunit"}}
+      "fieldConfig": {"defaults": {"unit": "percentunit", "custom": {"fillOpacity": 15, "lineWidth": 2}}}
     },
     {
-      "title": "Domain Rates (5m)",
+      "title": "Domain Success Rates",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
-        {"expr": "businessos:payment_authorized:rate5m", "legendFormat": "payment authorized", "refId": "A"},
-        {"expr": "businessos:fraud_approved:rate5m", "legendFormat": "fraud approved", "refId": "B"},
-        {"expr": "businessos:settlement_completed:rate5m", "legendFormat": "settlement completed", "refId": "C"},
-        {"expr": "businessos:payout_completed:rate5m", "legendFormat": "payout completed", "refId": "D"}
-      ]
-    },
-    {
-      "title": "Domain Latencies p95",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [
-        {"expr": "businessos:payment_latency:p95", "legendFormat": "payment", "refId": "A"},
-        {"expr": "businessos:fraud_latency:p95", "legendFormat": "fraud", "refId": "B"},
-        {"expr": "businessos:settlement_latency:p95", "legendFormat": "settlement", "refId": "C"}
+        {"expr": "businessos:payment_authorized:rate5m", "legendFormat": "Payment authorized", "refId": "A"},
+        {"expr": "businessos:fraud_approved:rate5m", "legendFormat": "Fraud approved", "refId": "B"},
+        {"expr": "businessos:settlement_completed:rate5m", "legendFormat": "Settlement completed", "refId": "C"},
+        {"expr": "businessos:payout_completed:rate5m", "legendFormat": "Payout completed", "refId": "D"}
       ],
-      "fieldConfig": {"defaults": {"unit": "s"}}
+      "fieldConfig": {"defaults": {"unit": "reqps", "custom": {"fillOpacity": 10}}}
     },
     {
-      "title": "JVM Heap Ratio",
+      "title": "Domain Latencies p95 (SLO targets)",
       "type": "timeseries",
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 16},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "businessos:payment_latency:p95", "legendFormat": "Payment p95", "refId": "A"},
+        {"expr": "businessos:fraud_latency:p95", "legendFormat": "Fraud p95", "refId": "B"},
+        {"expr": "businessos:settlement_latency:p95", "legendFormat": "Settlement p95", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"fillOpacity": 10}}, "overrides": [{"matcher": {"id": "byName", "options": "Payment p95"}, "properties": [{"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.5}]}}]}]}
+    },
+    {
+      "title": "JVM Heap Usage",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 15},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "businessos:jvm_heap_ratio", "legendFormat": "{{job}}", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1}}
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1, "custom": {"fillOpacity": 20}}}
+    },
+    {
+      "title": "Active SLO Alerts",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 21},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "ALERTS{alertname=~\"PaymentErrorRatioHigh|FraudDeclineRatioHigh|LatencySLOBreach|HttpErrorRatioHigh\"}", "legendFormat": "{{alertname}} {{severity}}", "refId": "A"}]
     }
   ]
 }
