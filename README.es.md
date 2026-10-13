@@ -1,0 +1,193 @@
+# BusinessOS Observability Stack — Documentación en Español
+
+Plataforma de observabilidad open-source de grado empresarial para todos los engines de BusinessOS / Kashbit (merchant, payment, fraud, settlement, treasury, payout, reconciliation, chargeback-disputes, security) y la capa de integración del Aggregator.
+
+## Stack (LGTM + más)
+
+| Componente | Propósito | Puerto |
+|------------|-----------|--------|
+| **Grafana** | Interfaz unificada (métricas, logs, traces, alertas) | 3000 |
+| **Prometheus** | TSDB de métricas + evaluación de alertas | 9090 |
+| **Loki** | Agregación de logs | 3100 |
+| **Tempo** | Tracing distribuido | 3200 |
+| **Alertmanager** | Enrutamiento, agrupación y silenciado de alertas | 9093 |
+| **OpenTelemetry Collector** | Receptor OTLP (métricas/logs/traces) | 4317 (gRPC), 4318 (HTTP) |
+| **Grafana Alloy** | Agente unificado (métricas, logs, traces + descubrimiento Docker) | 12345 |
+| **node-exporter** | Métricas del host | 9100 |
+| **cAdvisor** | Métricas de contenedores | 8080 |
+| **Kafka Exporter** | Lag de consumidores y métricas de topics | 9308 |
+| **Postgres Exporter** | Métricas de PostgreSQL | 9187 |
+
+## Inicio rápido
+
+```bash
+cp .env.example .env
+# Edita .env con los endpoints de Kafka/Postgres si es necesario
+docker compose up -d
+```
+
+Abre Grafana: http://localhost:3000 (admin / admin)
+
+Los dashboards pre-provisionados aparecen en la carpeta **BusinessOS**.
+
+## Señales cubiertas
+
+### Métricas
+- Micrometer (engines Java) + scrape de Prometheus + OTLP.
+- Métricas de dominio: `businessos.payment.*`, `businessos.fraud.*`, `businessos.settlement.*`, `businessos.payout.*`, `businessos.reconciliation.*`, `businessos.merchant.*`, `businessos.chargeback.*`, `businessos.security.*`.
+- Confiabilidad (outbox/inbox), decisiones de seguridad, reconciliación, health probes, JVM, lag de Kafka, Postgres.
+- Recording rules pre-calculadas (tasas, ratios de error, latencias p95, heap).
+
+### Logs
+- Logs estructurados de los engines (vía Alloy u OTLP).
+- Correlación con `trace_id` y `tenant`.
+- Detección de errores, estados desconocidos y eventos de quarantine.
+
+### Traces
+- OpenTelemetry (Java agent o SDK) para flujos end-to-end de payment/settlement/payout.
+- Correlación con logs y métricas en Grafana.
+
+### Alertas
+- Críticas de dinero (liveness, Postgres down, Kafka down, lag de reconciliación).
+- Confiabilidad (outbox pending, denials de seguridad).
+- Compliance y aislamiento de tenants.
+- SLO de errores y latencia (PaymentErrorRatioHigh, FraudDeclineRatioHigh, LatencySLOBreach, HttpErrorRatioHigh, DomainLatencySpike).
+
+## Dashboards pre-provisionados
+
+Todos soportan variables de multi-tenancy (cuando aplica), correlación con logs/traces y troubleshooting de errores.
+
+| Dashboard | Propósito |
+|-----------|-----------|
+| **Multi-Tenant Overview** | Salud de engines, rates, latencia, tenants activos, denials |
+| **Domain Metrics (All Engines)** | Contadores y latencias de dominio de todos los engines |
+| **SLO Overview** | Gauges y timeseries basados en recording rules (error ratios, latencias p95, heap) |
+| **Executive Summary** | KPIs de alto nivel para dirección (engines up, error %, volúmenes, latencias) |
+| **Errors & Logs (Troubleshooting)** | Logs de error/warn en Loki, top messages, correlación por trace_id |
+| **Kafka & Reliability** | Outbox/inbox, consumer lag, quarantine |
+| **Payment / Fraud / Settlement / Payout / Reconciliation** | Vistas específicas por engine |
+| **Distributed Traces** | Búsqueda TraceQL, service map, traces lentos |
+| **Security & Compliance** | Denials, allowed, quarantine, logs de policy/audit |
+| **Audit Trail** | Trail completo de auditoría y decisiones de seguridad |
+| **Anomaly Detection** | Spikes de volumen de logs, errores anómalos, latencia vs baseline |
+| **Performance Metrics** | Throughput, percentiles, JVM, CPU, outbox/inbox |
+| **Treasury Engine** | Rate, latency, JVM y logs del treasury |
+
+## Instrumentación de engines
+
+### Dependencias (Gradle)
+```gradle
+implementation 'io.micrometer:micrometer-core'
+implementation 'io.micrometer:micrometer-registry-prometheus'
+implementation 'org.springframework.boot:spring-boot-starter-actuator'
+```
+
+### Exposición (application.yml)
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: <nombre-engine>
+      engine: <engine>
+```
+
+### Clases de métricas de dominio
+Siguen el patrón del Aggregator (`ReliabilityMetrics`, `SecurityMetrics`):
+- Constructor dual (`SimpleMeterRegistry` para tests / `MeterRegistry` inyectado).
+- **Ley de cardinalidad**: no se permiten tags de alta cardinalidad (`tenant_id`, `payment_id`, `correlation_id`, etc.).
+- Nombres semánticos estables (`businessos.<engine>.<accion>`).
+
+Ejemplos ya implementados: `PaymentMetrics`, `FraudMetrics`, `SettlementMetrics`, `PayoutMetrics`, `ReconciliationEngineMetrics`, `MerchantMetrics`, `ChargebackMetrics`, `SecurityEngineMetrics`.
+
+### Scrape de Prometheus
+Los jobs están pre-configurados en `configs/prometheus/prometheus.yml`. Ajusta los puertos según tu despliegue:
+
+| Job | Path | Puerto ejemplo |
+|-----|------|----------------|
+| businessos-aggregator | `/metrics` | 8080 |
+| businessos-payment | `/actuator/prometheus` | 8082 |
+| businessos-settlement | `/actuator/prometheus` | 8083 |
+| businessos-payout | `/actuator/prometheus` | 8084 |
+| businessos-reconciliation | `/actuator/prometheus` | 8085 |
+| businessos-treasury | `/actuator/prometheus` | 8086 |
+| businessos-fraud | `/actuator/prometheus` | 8087 |
+| businessos-merchant | `/actuator/prometheus` | 8088 |
+| businessos-chargeback | `/actuator/prometheus` | 8089 |
+| businessos-security | `/actuator/prometheus` | 8090 |
+
+## Recording Rules
+
+Definidas en `configs/prometheus/recording-rules.yml`. Pre-calculan:
+- Tasas de dominio (`businessos:payment_authorized:rate5m`, etc.).
+- Ratios de error/decline.
+- Latencias p95.
+- Ratio HTTP 5xx y uso de heap JVM.
+
+Usadas por los dashboards SLO y Executive Summary.
+
+## Alertas principales
+
+| Grupo | Alertas clave |
+|-------|---------------|
+| Money-critical | LivenessLoss, PostgresDown, KafkaDown, ReconciliationLag |
+| Reliability | OutboxPendingHigh, SecurityDenialsSpike |
+| Security & Compliance | SecurityDenialRateHigh, TenantIsolationViolationSuspected, QuarantineSpike |
+| SLO Errores/Latencia | PaymentErrorRatioHigh, FraudDeclineRatioHigh, LatencySLOBreach, HttpErrorRatioHigh, DomainLatencySpike |
+
+Enrutamiento en Alertmanager por severidad y canal dedicado de security-compliance.
+
+## Características enterprise
+
+- Variables de multi-tenancy en los dashboards principales.
+- Control de cardinalidad (sin tags de alta cardinalidad en métricas de negocio).
+- Correlación completa entre traces (Tempo), logs (Loki) y métricas (Prometheus).
+- Dashboards-as-code.
+- Retención configurable; listo para remote-write a Mimir.
+- Exporters de Kafka y Postgres.
+- Health probes fail-closed como gauges.
+
+## Notas de producción (los 3 puntos)
+
+Este compose es adecuado para staging / nodo único. Para escala enterprise se incluyen ejemplos listos en la carpeta `production/`:
+
+1. **Reemplazar Prometheus por Grafana Mimir** (multi-tenant)  
+   → `production/mimir/mimir.yaml`
+
+2. **Object storage (S3) para Loki y Tempo**  
+   → `production/object-storage/loki-s3.yaml`  
+   → `production/object-storage/tempo-s3.yaml`
+
+3. **Alloy y OpenTelemetry Collector como DaemonSets en Kubernetes**  
+   → `production/k8s/alloy-daemonset.yaml`  
+   → `production/k8s/otel-collector-daemonset.yaml`
+
+Ver `production/README.md` para instrucciones de uso. Adicionalmente:
+- Habilita RBAC / teams por tenant en Grafana (OSS básico; Enterprise para avanzado).
+- Considera Grafana Cloud o Enterprise para reporting avanzado y on-call.
+
+Alternativa mínima oficial: imagen `grafana/otel-lgtm`.
+
+## Estructura del repositorio
+
+```
+configs/
+  prometheus/     # prometheus.yml, alert-rules.yml, recording-rules.yml
+  grafana/        # provisioning + dashboards
+  loki/
+  tempo/
+  alertmanager/
+  alloy/
+  otel-collector/
+production/       # configs enterprise (Mimir, S3, DaemonSets K8s)
+instrumentation/  # guías para agregar Micrometer/OTel a engines
+docker-compose.yml
+```
+
+---
+
+Documentación generada para el stack BusinessOS Observability.  
+Repositorio: https://github.com/omarge/businessos-observability

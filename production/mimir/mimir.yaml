@@ -1,0 +1,40 @@
+# Grafana Mimir - multi-tenant production config (example)
+# Replace Prometheus with Mimir for horizontal scale and multi-tenancy.
+
+multitenancy_enabled: true
+
+server:
+  http_listen_port: 8080
+  grpc_listen_port: 9095
+
+ingester:
+  ring:
+    replication_factor: 3
+    kvstore:
+      store: memberlist
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 3
+
+compactor:
+  sharding_ring:
+    kvstore:
+      store: memberlist
+
+limits:
+  ingestion_rate: 100000
+  ingestion_burst_size: 200000
+  max_global_series_per_user: 1500000
+
+blocks_storage:
+  backend: s3
+  s3:
+    bucket_name: businessos-mimir
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+    # Use IAM role or set access_key_id / secret_access_key via env
+
+memberlist:
+  join_members:
+    - mimir-gossip-ring
