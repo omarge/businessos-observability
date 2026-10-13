@@ -2,6 +2,76 @@
 
 Plataforma de observabilidad open-source de grado empresarial para todos los engines de BusinessOS / Kashbit (merchant, payment, fraud, settlement, treasury, payout, reconciliation, chargeback-disputes, security) y la capa de integración del Aggregator.
 
+## Arquitectura
+
+```mermaid
+flowchart LR
+  subgraph Engines
+    P[Payment]
+    F[Fraud]
+    S[Settlement]
+    Po[Payout]
+    R[Reconciliation]
+    M[Merchant]
+    C[Chargeback]
+    Sec[Security]
+    T[Treasury & Liquidity]
+  end
+
+  subgraph Collect
+    Alloy[Grafana Alloy]
+    OTel[OTel Collector]
+  end
+
+  subgraph Store
+    Prom[Prometheus]
+    Loki[Loki]
+    Tempo[Tempo]
+  end
+
+  subgraph UI
+    Graf[Grafana]
+    AM[Alertmanager]
+  end
+
+  Engines -->|Micrometer /actuator/prometheus| Prom
+  Engines -->|OTel Java agent| OTel
+  Alloy -->|logs| Loki
+  OTel -->|traces| Tempo
+  OTel -->|logs| Loki
+  Prom -->|alerts| AM
+  Prom --> Graf
+  Loki --> Graf
+  Tempo --> Graf
+  AM -->|Slack / PagerDuty / Email| Notify[Notificaciones]
+```
+
+### Flujo de señales
+
+1. **Métricas** — Cada engine expone `/actuator/prometheus` (Micrometer). Prometheus hace scrape periódico. Las clases de dominio (`PaymentMetrics`, `LiquidityMetrics`, etc.) y aspectos AOP registran contadores y timers de negocio.
+2. **Traces** — El Java agent de OpenTelemetry (incluido en el Dockerfile de cada engine) instrumenta las llamadas y las envía por OTLP al Collector, que las persiste en Tempo.
+3. **Logs** — Alloy (o el Collector) recoge logs de contenedores y los envía a Loki. Los logs incluyen `trace_id` para correlacionar con Tempo.
+4. **Alertas** — Prometheus evalúa las reglas (incluidas las de liquidez). Alertmanager enruta por severidad a Slack, PagerDuty o email.
+5. **Visualización** — Grafana consulta Prometheus, Loki y Tempo. Los dashboards de dominio, SLO, Executive y Liquidity muestran las señales correlacionadas.
+
+```mermaid
+sequenceDiagram
+  participant Engine
+  participant Prom as Prometheus
+  participant OTel as OTel Collector
+  participant Tempo
+  participant Loki
+  participant Graf as Grafana
+
+  Engine->>Prom: scrape /actuator/prometheus
+  Engine->>OTel: traces + logs (OTLP)
+  OTel->>Tempo: traces
+  OTel->>Loki: logs
+  Prom->>Graf: metrics + recording rules
+  Loki->>Graf: logs
+  Tempo->>Graf: traces
+```
+
 ## Stack (LGTM + más)
 
 | Componente | Propósito | Puerto |
