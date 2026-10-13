@@ -112,3 +112,53 @@ groups:
         annotations:
           summary: "Compliance / audit related denial"
           description: "Review audit trail and policy decisions."
+
+  - name: businessos-slo-errors-latency
+    rules:
+      - alert: PaymentErrorRatioHigh
+        expr: businessos:payment_error_ratio:rate5m > 0.01
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Payment error ratio above 1%"
+          description: "Payment failed / (authorized + failed) exceeded 1% for 5 minutes."
+
+      - alert: FraudDeclineRatioHigh
+        expr: businessos:fraud_decline_ratio:rate5m > 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fraud decline ratio above 15%"
+          description: "Fraud decline rate is elevated. Review policy or traffic."
+
+      - alert: LatencySLOBreach
+        expr: businessos:payment_latency:p95 > 0.5 or businessos:fraud_latency:p95 > 0.8 or businessos:settlement_latency:p95 > 1
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Domain latency SLO breach"
+          description: "One or more domain p95 latencies exceeded target (payment >500ms, fraud >800ms, settlement >1s)."
+
+      - alert: HttpErrorRatioHigh
+        expr: businessos:http_error_ratio:rate5m > 0.05
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "HTTP 5xx ratio above 5% on {{ $labels.job }}"
+          description: "Platform error rate is elevated."
+
+      - alert: DomainLatencySpike
+        expr: |
+          businessos:payment_latency:p95 > 3 * avg_over_time(businessos:payment_latency:p95[1h])
+          or
+          businessos:fraud_latency:p95 > 3 * avg_over_time(businessos:fraud_latency:p95[1h])
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Domain latency spike (3x 1h baseline)"
+          description: "p95 latency is more than 3 times the recent baseline."

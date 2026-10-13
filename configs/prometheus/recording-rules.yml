@@ -1,0 +1,67 @@
+groups:
+  - name: businessos-recording-rates
+    interval: 30s
+    rules:
+      # Domain rates (5m)
+      - record: businessos:payment_authorized:rate5m
+        expr: sum(rate(businessos_payment_authorized_total[5m]))
+
+      - record: businessos:payment_failed:rate5m
+        expr: sum(rate(businessos_payment_failed_total[5m]))
+
+      - record: businessos:payment_error_ratio:rate5m
+        expr: |
+          sum(rate(businessos_payment_failed_total[5m]))
+          /
+          clamp_min(sum(rate(businessos_payment_authorized_total[5m])) + sum(rate(businessos_payment_failed_total[5m])), 0.001)
+
+      - record: businessos:fraud_approved:rate5m
+        expr: sum(rate(businessos_fraud_approved_total[5m]))
+
+      - record: businessos:fraud_declined:rate5m
+        expr: sum(rate(businessos_fraud_declined_total[5m]))
+
+      - record: businessos:fraud_decline_ratio:rate5m
+        expr: |
+          sum(rate(businessos_fraud_declined_total[5m]))
+          /
+          clamp_min(sum(rate(businessos_fraud_approved_total[5m])) + sum(rate(businessos_fraud_declined_total[5m])), 0.001)
+
+      - record: businessos:settlement_completed:rate5m
+        expr: sum(rate(businessos_settlement_completed_total[5m]))
+
+      - record: businessos:payout_completed:rate5m
+        expr: sum(rate(businessos_payout_completed_total[5m]))
+
+      - record: businessos:reconciliation_break:rate5m
+        expr: sum(rate(businessos_reconciliation_break_total[5m]))
+
+      - record: businessos:chargeback_opened:rate5m
+        expr: sum(rate(businessos_chargeback_opened_total[5m]))
+
+      - record: businessos:security_denied:rate5m
+        expr: sum(rate(businessos_security_auth_denied_total[5m]))
+
+      # Latency percentiles (p95)
+      - record: businessos:payment_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(businessos_payment_latency_seconds_bucket[5m])))
+
+      - record: businessos:fraud_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(businessos_fraud_latency_seconds_bucket[5m])))
+
+      - record: businessos:settlement_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(businessos_settlement_latency_seconds_bucket[5m])))
+
+      # HTTP error ratio (platform)
+      - record: businessos:http_error_ratio:rate5m
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          clamp_min(sum by (job) (rate(http_server_requests_seconds_count[5m])), 0.001)
+
+      # JVM heap ratio
+      - record: businessos:jvm_heap_ratio
+        expr: |
+          sum by (job) (jvm_memory_used_bytes{area="heap"})
+          /
+          clamp_min(sum by (job) (jvm_memory_max_bytes{area="heap"}), 1)
