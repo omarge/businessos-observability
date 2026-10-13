@@ -1,0 +1,47 @@
+{
+  "uid": "businessos-engine-fraud",
+  "title": "Fraud Engine (Multi-Tenant)",
+  "tags": ["businessos", "fraud", "engine", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(http_server_requests_seconds_count{job=~\"fraud.*\"}, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Fraud Decisions Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (rate(http_server_requests_seconds_count{job=~\"fraud.*\", tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Latency p99",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "histogram_quantile(0.99, sum by (tenant, le) (rate(http_server_requests_seconds_bucket{job=~\"fraud.*\", tenant=~\"$tenant\"}[5m])))", "legendFormat": "{{tenant}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "Fraud Errors (Logs)",
+      "type": "logs",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"fraud.*\"} | json | tenant=~\"$tenant\" | level=~\"ERROR|WARN\" |~ \"(?i)risk|block|deny|exception\"", "refId": "A"}]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "uid": "businessos-engine-payment",
+  "title": "Payment Engine (Multi-Tenant)",
+  "tags": ["businessos", "payment", "engine", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(http_server_requests_seconds_count{job=~\"payment.*\"}, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Payment Request Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant, uri) (rate(http_server_requests_seconds_count{job=~\"payment.*\", tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}} {{uri}}", "refId": "A"}]
+    },
+    {
+      "title": "Payment Latency p95",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (tenant, le) (rate(http_server_requests_seconds_bucket{job=~\"payment.*\", tenant=~\"$tenant\"}[5m])))", "legendFormat": "{{tenant}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "5xx Errors",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (rate(http_server_requests_seconds_count{job=~\"payment.*\", status=~\"5..\", tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Security Decisions (Payment)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_allowed_total{job=~\"payment.*\", tenant=~\"$tenant\"}[5m]))", "legendFormat": "allowed {{tenant}}", "refId": "A"},
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_denied_total{job=~\"payment.*\", tenant=~\"$tenant\"}[5m]))", "legendFormat": "denied {{tenant}}", "refId": "B"}
+      ]
+    },
+    {
+      "title": "Recent Payment Errors (Logs)",
+      "type": "logs",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 14},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"payment.*\"} | json | tenant=~\"$tenant\" | level=~\"ERROR|WARN\"", "refId": "A"}]
+    }
+  ]
+}

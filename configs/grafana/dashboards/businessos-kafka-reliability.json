@@ -1,0 +1,70 @@
+{
+  "uid": "businessos-kafka-reliability",
+  "title": "BusinessOS Kafka & Reliability (Multi-Tenant)",
+  "tags": ["businessos", "kafka", "reliability", "outbox", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(businessos_integration_outbox_pending_total, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      },
+      {
+        "name": "topic",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(kafka_consumergroup_lag, topic)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Outbox Pending by Tenant",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (businessos_integration_outbox_pending_total{tenant=~\"$tenant\"})", "legendFormat": "{{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Inbox Processed Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (rate(businessos_integration_inbox_processed_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Kafka Consumer Lag by Topic/Group",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (topic, consumergroup) (kafka_consumergroup_lag{topic=~\"$topic\"})", "legendFormat": "{{topic}} / {{consumergroup}}", "refId": "A"}]
+    },
+    {
+      "title": "Quarantine Events",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant, reason) (rate(businessos_integration_quarantine_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}} - {{reason}}", "refId": "A"}]
+    },
+    {
+      "title": "Reconciliation Breaks",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (rate(businessos_integration_reconciliation_break_detected_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}}", "refId": "A"}]
+    }
+  ]
+}

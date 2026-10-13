@@ -1,0 +1,53 @@
+{
+  "uid": "businessos-engine-settlement-payout-recon",
+  "title": "Settlement / Payout / Reconciliation (Multi-Tenant)",
+  "tags": ["businessos", "settlement", "payout", "reconciliation", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(businessos_integration_reconciliation_break_detected_total, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Reconciliation Breaks by Tenant",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (rate(businessos_integration_reconciliation_break_detected_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Pending Reconciliation Reports",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant) (businessos_integration_reconciliation_report_pending{tenant=~\"$tenant\"})", "legendFormat": "{{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Outbox Pending (Settlement/Payout)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (job, tenant) (businessos_integration_outbox_pending_total{job=~\"settlement.*|payout.*\", tenant=~\"$tenant\"})", "legendFormat": "{{job}} {{tenant}}", "refId": "A"}]
+    },
+    {
+      "title": "Settlement / Payout / Recon Errors",
+      "type": "logs",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 14},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"settlement.*|payout.*|reconciliation.*\"} | json | tenant=~\"$tenant\" | level=~\"ERROR|WARN\"", "refId": "A"}]
+    }
+  ]
+}

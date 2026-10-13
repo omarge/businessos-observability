@@ -1,0 +1,75 @@
+{
+  "uid": "businessos-errors-logs",
+  "title": "BusinessOS Errors & Logs (Troubleshooting)",
+  "tags": ["businessos", "logs", "errors", "loki", "troubleshooting"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "textbox",
+        "current": {"text": ".*", "value": ".*"},
+        "label": "Tenant (regex)"
+      },
+      {
+        "name": "engine",
+        "type": "textbox",
+        "current": {"text": ".*", "value": ".*"},
+        "label": "Engine / job (regex)"
+      },
+      {
+        "name": "level",
+        "type": "custom",
+        "options": [
+          {"text": "All", "value": ".*", "selected": true},
+          {"text": "ERROR", "value": "ERROR"},
+          {"text": "WARN", "value": "WARN"},
+          {"text": "INFO", "value": "INFO"}
+        ],
+        "current": {"text": "All", "value": ".*"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Error Count (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "sum(count_over_time({job=~\"$engine\"} | json | level=~\"ERROR\" | tenant=~\"$tenant\" [5m]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 10}]}}}
+    },
+    {
+      "title": "Warn Count (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "sum(count_over_time({job=~\"$engine\"} | json | level=~\"WARN\" | tenant=~\"$tenant\" [5m]))", "refId": "A"}]
+    },
+    {
+      "title": "Top Error Messages",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "topk(10, sum by (msg) (count_over_time({job=~\"$engine\"} | json | level=~\"ERROR\" | tenant=~\"$tenant\" [1h])))", "refId": "A"}]
+    },
+    {
+      "title": "Live Error Logs",
+      "type": "logs",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"$engine\"} | json | level=~\"$level\" | tenant=~\"$tenant\" |~ \"(?i)error|exception|fail|denied|quarantine\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": true, "dedupStrategy": "none"}
+    },
+    {
+      "title": "Trace Correlation (trace_id present)",
+      "type": "logs",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"$engine\"} | json | tenant=~\"$tenant\" | trace_id != \"\" | level=~\"ERROR|WARN\"", "refId": "A"}]
+    }
+  ]
+}

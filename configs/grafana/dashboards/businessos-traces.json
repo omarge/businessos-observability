@@ -1,0 +1,45 @@
+{
+  "uid": "businessos-traces",
+  "title": "BusinessOS Distributed Traces",
+  "tags": ["businessos", "traces", "tempo", "correlation"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": {"type": "tempo", "uid": "tempo"},
+        "query": "{ resource.service.name =~ \".*\" } | rate() by (resource.service.name)",
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Trace Search (TraceQL)",
+      "type": "traces",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [{"query": "{ resource.service.name =~ \"$service\" && duration > 100ms }", "refId": "A"}]
+    },
+    {
+      "title": "Service Map / RED (from traces)",
+      "type": "nodeGraph",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 12},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [{"query": "{ resource.service.name =~ \"$service\" }", "refId": "A"}]
+    },
+    {
+      "title": "Slow Traces (>1s)",
+      "type": "traces",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 22},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [{"query": "{ resource.service.name =~ \"$service\" && duration > 1s }", "refId": "A"}]
+    }
+  ]
+}
