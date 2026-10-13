@@ -1,0 +1,115 @@
+{
+  "uid": "businessos-domain-metrics",
+  "title": "BusinessOS Domain Metrics (All Engines)",
+  "tags": ["businessos", "domain", "micrometer", "engines"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "engine",
+        "type": "custom",
+        "options": [
+          {"text": "All", "value": ".*", "selected": true},
+          {"text": "Payment", "value": "payment"},
+          {"text": "Settlement", "value": "settlement"},
+          {"text": "Payout", "value": "payout"},
+          {"text": "Reconciliation", "value": "reconciliation"},
+          {"text": "Fraud", "value": "fraud"},
+          {"text": "Merchant", "value": "merchant"},
+          {"text": "Chargeback", "value": "chargeback"},
+          {"text": "Security", "value": "security"},
+          {"text": "Treasury", "value": "treasury"}
+        ],
+        "current": {"text": "All", "value": ".*"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Payment Outcomes",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_payment_authorized_total{engine=~\"$engine\"}[5m]))", "legendFormat": "authorized", "refId": "A"},
+        {"expr": "sum(rate(businessos_payment_captured_total{engine=~\"$engine\"}[5m]))", "legendFormat": "captured", "refId": "B"},
+        {"expr": "sum(rate(businessos_payment_failed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "failed", "refId": "C"},
+        {"expr": "sum(rate(businessos_payment_refunded_total{engine=~\"$engine\"}[5m]))", "legendFormat": "refunded", "refId": "D"}
+      ]
+    },
+    {
+      "title": "Fraud Decisions",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_fraud_approved_total{engine=~\"$engine\"}[5m]))", "legendFormat": "approved", "refId": "A"},
+        {"expr": "sum(rate(businessos_fraud_declined_total{engine=~\"$engine\"}[5m]))", "legendFormat": "declined", "refId": "B"},
+        {"expr": "sum(rate(businessos_fraud_review_total{engine=~\"$engine\"}[5m]))", "legendFormat": "review", "refId": "C"}
+      ]
+    },
+    {
+      "title": "Settlement / Payout",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_settlement_completed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "settlement completed", "refId": "A"},
+        {"expr": "sum(rate(businessos_settlement_failed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "settlement failed", "refId": "B"},
+        {"expr": "sum(rate(businessos_payout_completed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "payout completed", "refId": "C"},
+        {"expr": "sum(rate(businessos_payout_failed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "payout failed", "refId": "D"}
+      ]
+    },
+    {
+      "title": "Reconciliation & Chargeback",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_reconciliation_matched_total{engine=~\"$engine\"}[5m]))", "legendFormat": "recon matched", "refId": "A"},
+        {"expr": "sum(rate(businessos_reconciliation_break_total{engine=~\"$engine\"}[5m]))", "legendFormat": "recon break", "refId": "B"},
+        {"expr": "sum(rate(businessos_chargeback_opened_total{engine=~\"$engine\"}[5m]))", "legendFormat": "chargeback opened", "refId": "C"},
+        {"expr": "sum(rate(businessos_chargeback_won_total{engine=~\"$engine\"}[5m]))", "legendFormat": "chargeback won", "refId": "D"},
+        {"expr": "sum(rate(businessos_chargeback_lost_total{engine=~\"$engine\"}[5m]))", "legendFormat": "chargeback lost", "refId": "E"}
+      ]
+    },
+    {
+      "title": "Security Engine Decisions",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_security_auth_allowed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "allowed", "refId": "A"},
+        {"expr": "sum(rate(businessos_security_auth_denied_total{engine=~\"$engine\"}[5m]))", "legendFormat": "denied", "refId": "B"},
+        {"expr": "sum(rate(businessos_security_tenant_mismatch_total{engine=~\"$engine\"}[5m]))", "legendFormat": "tenant mismatch", "refId": "C"}
+      ]
+    },
+    {
+      "title": "Merchant Lifecycle",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_merchant_created_total{engine=~\"$engine\"}[5m]))", "legendFormat": "created", "refId": "A"},
+        {"expr": "sum(rate(businessos_merchant_activated_total{engine=~\"$engine\"}[5m]))", "legendFormat": "activated", "refId": "B"},
+        {"expr": "sum(rate(businessos_merchant_suspended_total{engine=~\"$engine\"}[5m]))", "legendFormat": "suspended", "refId": "C"}
+      ]
+    },
+    {
+      "title": "Domain Latencies (p95)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 22},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_payment_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "payment", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_fraud_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "fraud", "refId": "B"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_settlement_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "settlement", "refId": "C"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_payout_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "payout", "refId": "D"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    }
+  ]
+}
