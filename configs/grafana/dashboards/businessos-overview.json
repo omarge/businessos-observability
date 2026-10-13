@@ -1,0 +1,57 @@
+{
+  "title": "BusinessOS Overview",
+  "uid": "businessos-overview",
+  "tags": ["businessos"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Readiness",
+      "type": "stat",
+      "targets": [{ "expr": "businessos_readiness", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Liveness",
+      "type": "stat",
+      "targets": [{ "expr": "businessos_liveness", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 }
+    },
+    {
+      "id": 3,
+      "title": "Outbox Pending",
+      "type": "stat",
+      "targets": [{ "expr": "businessos_integration_outbox_pending_total", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 }
+    },
+    {
+      "id": 4,
+      "title": "Security Denials (5m rate)",
+      "type": "stat",
+      "targets": [{ "expr": "rate(businessos_integration_security_denied_total[5m])", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 }
+    },
+    {
+      "id": 5,
+      "title": "Health Probes",
+      "type": "timeseries",
+      "targets": [{ "expr": "businessos_health_probe", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+    },
+    {
+      "id": 6,
+      "title": "Reconciliation Reports",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(businessos_integration_reconciliation_report_matched_total[5m])", "legendFormat": "matched", "refId": "A" },
+        { "expr": "rate(businessos_integration_reconciliation_report_mismatched_total[5m])", "legendFormat": "mismatched", "refId": "B" },
+        { "expr": "rate(businessos_integration_reconciliation_break_detected_total[5m])", "legendFormat": "breaks", "refId": "C" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+    }
+  ]
+}
