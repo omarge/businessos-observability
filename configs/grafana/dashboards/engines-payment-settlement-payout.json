@@ -1,0 +1,34 @@
+{
+  "title": "Payment / Settlement / Payout Engines",
+  "uid": "businessos-engines-core",
+  "tags": ["businessos", "engines"],
+  "panels": [
+    {
+      "title": "Payment Events Rate",
+      "type": "timeseries",
+      "targets": [{ "expr": "rate(businessos_payment_events_total[5m]) or rate(http_server_requests_seconds_count{engine=\"payment\"}[5m])", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Settlement Instructions",
+      "type": "timeseries",
+      "targets": [{ "expr": "rate(businessos_settlement_events_total[5m])", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "Payout Success / Unknown",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(businessos_payout_succeeded_total[5m])", "legendFormat": "succeeded", "refId": "A" },
+        { "expr": "rate(businessos_payout_execution_unknown_total[5m])", "legendFormat": "unknown", "refId": "B" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    },
+    {
+      "title": "Kafka Consumer Lag (by group)",
+      "type": "timeseries",
+      "targets": [{ "expr": "kafka_consumergroup_lag", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 }
+    }
+  ]
+}
