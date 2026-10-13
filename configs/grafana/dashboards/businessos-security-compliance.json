@@ -1,0 +1,97 @@
+{
+  "uid": "businessos-security-compliance",
+  "title": "Security & Compliance (Multi-Tenant)",
+  "tags": ["businessos", "security", "compliance", "multitenancy", "audit"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(businessos_integration_security_denied_total, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      },
+      {
+        "name": "engine",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(businessos_integration_security_denied_total, job)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Security Denials (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.1}, {"color": "red", "value": 1}]}}}
+    },
+    {
+      "title": "Security Allowed (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(businessos_integration_security_allowed_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "refId": "A"}]
+    },
+    {
+      "title": "Denial Rate %",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "100 * sum(rate(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m])) / clamp_min(sum(rate(businessos_integration_security_allowed_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m])) + sum(rate(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m])), 0.001)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 20}]}}}
+    },
+    {
+      "title": "Quarantine Events (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(businessos_integration_quarantine_total{tenant=~\"$tenant\"}[5m]))", "refId": "A"}]
+    },
+    {
+      "title": "Security Decisions by Tenant",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_allowed_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "legendFormat": "allowed {{tenant}}", "refId": "A"},
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "legendFormat": "denied {{tenant}}", "refId": "B"}
+      ]
+    },
+    {
+      "title": "Denials by Reason / Engine",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (reason, job) (rate(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "legendFormat": "{{reason}} {{job}}", "refId": "A"}]
+    },
+    {
+      "title": "Compliance: Auth Failures & Policy Violations (Logs)",
+      "type": "logs",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 12},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"$engine\"} | json | tenant=~\"$tenant\" | level=~\"ERROR|WARN\" |~ \"(?i)denied|unauthorized|forbidden|policy|compliance|audit|quarantine|tenant mismatch\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": true}
+    },
+    {
+      "title": "Security Alerts (Prometheus)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 22},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "ALERTS{alertname=~\"Security.*|Compliance.*\"}", "legendFormat": "{{alertname}} {{severity}}", "refId": "A"}]
+    }
+  ]
+}
