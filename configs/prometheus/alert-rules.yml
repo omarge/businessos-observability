@@ -1,0 +1,67 @@
+groups:
+  - name: businessos-money-critical
+    rules:
+      - alert: LivenessLoss
+        expr: businessos_liveness == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Liveness lost"
+          description: "Process and financial authority not both healthy. Do not restart blindly."
+
+      - alert: PostgresDown
+        expr: businessos_health_probe{probe="PostgresHealthProbe"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL (financial authority) down"
+          description: "System of record for money movement is unreachable."
+
+      - alert: KafkaDown
+        expr: businessos_health_probe{probe="KafkaHealthProbe"} == 0
+        for: 1m
+        labels:
+          severity: high
+        annotations:
+          summary: "Kafka transport down"
+          description: "Ingestion/readiness impacted."
+
+      - alert: ReconciliationLag
+        expr: businessos_integration_reconciliation_report_pending > 0 or increase(businessos_integration_reconciliation_break_detected_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Reconciliation lag or break detected"
+          description: "Divergence risk. Check reconciliation engine."
+
+      - alert: UnknownMoneyState
+        expr: businessos_health_probe == 0
+        for: 2m
+        labels:
+          severity: medium
+        annotations:
+          summary: "Unknown probe state"
+          description: "Fail-closed; treat as not-ready."
+
+  - name: businessos-reliability
+    rules:
+      - alert: OutboxPendingHigh
+        expr: rate(businessos_integration_outbox_pending_total[5m]) > 10 or businessos_integration_outbox_pending_total > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High outbox pending"
+          description: "Messages stuck in outbox. Check relay."
+
+      - alert: SecurityDenialsSpike
+        expr: rate(businessos_integration_security_denied_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Security denials spiking"
+          description: "Check producer/consumer authorization or tenant mismatch."
