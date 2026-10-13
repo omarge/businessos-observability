@@ -4,77 +4,81 @@
   "tags": ["businessos", "executive", "summary", "enterprise"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "1m",
   "panels": [
     {
-      "title": "Engines Up",
+      "title": "Engines Healthy",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "count(up == 1)", "refId": "A"}],
-      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}}
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 5}]}, "color": {"mode": "thresholds"}}}
     },
     {
-      "title": "Payment Error %",
+      "title": "Payment Error Rate",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "gridPos": {"h": 5, "w": 4, "x": 4, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "businessos:payment_error_ratio:rate5m * 100", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 2}}
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 2, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 1}]}}}
     },
     {
-      "title": "Fraud Decline %",
+      "title": "Fraud Decline Rate",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "gridPos": {"h": 5, "w": 4, "x": 8, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "businessos:fraud_decline_ratio:rate5m * 100", "refId": "A"}],
-      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 2}}
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 15}]}}}
     },
     {
-      "title": "Recon Breaks (5m)",
+      "title": "Recon Breaks / 5m",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "gridPos": {"h": 5, "w": 4, "x": 12, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"expr": "businessos:reconciliation_break:rate5m", "refId": "A"}]
+      "targets": [{"expr": "businessos:reconciliation_break:rate5m", "refId": "A"}],
+      "fieldConfig": {"defaults": {"decimals": 2, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.1}]}}}
     },
     {
-      "title": "Security Denials (5m)",
+      "title": "Security Denials / 5m",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "gridPos": {"h": 5, "w": 4, "x": 16, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"expr": "businessos:security_denied:rate5m", "refId": "A"}]
+      "targets": [{"expr": "businessos:security_denied:rate5m", "refId": "A"}],
+      "fieldConfig": {"defaults": {"decimals": 2, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
     },
     {
-      "title": "Chargebacks Opened (5m)",
+      "title": "Chargebacks Opened / 5m",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "gridPos": {"h": 5, "w": 4, "x": 20, "y": 0},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"expr": "businessos:chargeback_opened:rate5m", "refId": "A"}]
+      "targets": [{"expr": "businessos:chargeback_opened:rate5m", "refId": "A"}],
+      "fieldConfig": {"defaults": {"decimals": 2}}
     },
     {
-      "title": "Key Domain Volumes",
+      "title": "Business Volumes (5m rate)",
       "type": "timeseries",
-      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 4},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 5},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {"expr": "businessos:payment_authorized:rate5m", "legendFormat": "Payments authorized", "refId": "A"},
         {"expr": "businessos:fraud_approved:rate5m", "legendFormat": "Fraud approved", "refId": "B"},
         {"expr": "businessos:settlement_completed:rate5m", "legendFormat": "Settlements completed", "refId": "C"},
         {"expr": "businessos:payout_completed:rate5m", "legendFormat": "Payouts completed", "refId": "D"}
-      ]
+      ],
+      "fieldConfig": {"defaults": {"custom": {"fillOpacity": 15, "lineWidth": 2}}}
     },
     {
-      "title": "Critical Latencies p95",
+      "title": "Critical Path Latencies p95",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 15},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {"expr": "businessos:payment_latency:p95", "legendFormat": "Payment", "refId": "A"},
         {"expr": "businessos:fraud_latency:p95", "legendFormat": "Fraud", "refId": "B"},
         {"expr": "businessos:settlement_latency:p95", "legendFormat": "Settlement", "refId": "C"}
       ],
-      "fieldConfig": {"defaults": {"unit": "s"}}
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"fillOpacity": 10, "lineWidth": 2}}}
     }
   ]
 }
