@@ -1,0 +1,104 @@
+{
+  "uid": "businessos-performance",
+  "title": "Performance Metrics (Multi-Tenant)",
+  "tags": ["businessos", "performance", "latency", "throughput", "jvm", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(http_server_requests_seconds_count, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      },
+      {
+        "name": "engine",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(up, job)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Request Throughput",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (job, tenant) (rate(http_server_requests_seconds_count{job=~\"$engine\", tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{job}} {{tenant}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "title": "Latency Percentiles",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (job, le) (rate(http_server_requests_seconds_bucket{job=~\"$engine\"}[5m])))", "legendFormat": "p50 {{job}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_server_requests_seconds_bucket{job=~\"$engine\"}[5m])))", "legendFormat": "p95 {{job}}", "refId": "B"},
+        {"expr": "histogram_quantile(0.99, sum by (job, le) (rate(http_server_requests_seconds_bucket{job=~\"$engine\"}[5m])))", "legendFormat": "p99 {{job}}", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "Error Rate %",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "100 * sum by (job) (rate(http_server_requests_seconds_count{job=~\"$engine\", status=~\"5..\"}[5m])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count{job=~\"$engine\"}[5m])), 0.001)", "legendFormat": "{{job}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percent"}}
+    },
+    {
+      "title": "JVM Heap Usage",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (job) (jvm_memory_used_bytes{area=\"heap\", job=~\"$engine\"}) / sum by (job) (jvm_memory_max_bytes{area=\"heap\", job=~\"$engine\"}) * 100", "legendFormat": "{{job}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100}}
+    },
+    {
+      "title": "GC Pause Time",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "rate(jvm_gc_pause_seconds_sum{job=~\"$engine\"}[5m]) / rate(jvm_gc_pause_seconds_count{job=~\"$engine\"}[5m])", "legendFormat": "avg pause {{job}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "Thread Count",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "jvm_threads_live_threads{job=~\"$engine\"}", "legendFormat": "{{job}}", "refId": "A"}]
+    },
+    {
+      "title": "CPU Usage (process)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "rate(process_cpu_seconds_total{job=~\"$engine\"}[5m]) * 100", "legendFormat": "{{job}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percent"}}
+    },
+    {
+      "title": "Outbox / Inbox Throughput",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (job) (rate(businessos_integration_outbox_published_total{job=~\"$engine\"}[5m]))", "legendFormat": "outbox {{job}}", "refId": "A"},
+        {"expr": "sum by (job) (rate(businessos_integration_inbox_processed_total{job=~\"$engine\"}[5m]))", "legendFormat": "inbox {{job}}", "refId": "B"}
+      ]
+    }
+  ]
+}
