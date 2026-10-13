@@ -150,14 +150,23 @@ Enrutamiento en Alertmanager por severidad y canal dedicado de security-complian
 - Exporters de Kafka y Postgres.
 - Health probes fail-closed como gauges.
 
-## Notas de producción
+## Notas de producción (los 3 puntos)
 
-Este compose es adecuado para staging / nodo único. Para escala enterprise:
+Este compose es adecuado para staging / nodo único. Para escala enterprise se incluyen ejemplos listos en la carpeta `production/`:
 
-- Reemplaza Prometheus por Grafana Mimir (multi-tenant).
-- Usa object storage (S3/GCS) para Loki y Tempo.
-- Despliega Alloy / OTel Collector como DaemonSets en Kubernetes.
-- Habilita RBAC / teams por tenant en Grafana (OSS tiene básico; Enterprise para avanzado).
+1. **Reemplazar Prometheus por Grafana Mimir** (multi-tenant)  
+   → `production/mimir/mimir.yaml`
+
+2. **Object storage (S3) para Loki y Tempo**  
+   → `production/object-storage/loki-s3.yaml`  
+   → `production/object-storage/tempo-s3.yaml`
+
+3. **Alloy y OpenTelemetry Collector como DaemonSets en Kubernetes**  
+   → `production/k8s/alloy-daemonset.yaml`  
+   → `production/k8s/otel-collector-daemonset.yaml`
+
+Ver `production/README.md` para instrucciones de uso. Adicionalmente:
+- Habilita RBAC / teams por tenant en Grafana (OSS básico; Enterprise para avanzado).
 - Considera Grafana Cloud o Enterprise para reporting avanzado y on-call.
 
 Alternativa mínima oficial: imagen `grafana/otel-lgtm`.
@@ -173,6 +182,7 @@ configs/
   alertmanager/
   alloy/
   otel-collector/
+production/       # configs enterprise (Mimir, S3, DaemonSets K8s)
 instrumentation/  # guías para agregar Micrometer/OTel a engines
 docker-compose.yml
 ```
