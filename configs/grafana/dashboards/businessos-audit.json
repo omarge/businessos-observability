@@ -1,0 +1,92 @@
+{
+  "uid": "businessos-audit",
+  "title": "Audit Trail (Multi-Tenant)",
+  "tags": ["businessos", "audit", "compliance", "security", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(businessos_integration_security_denied_total, tenant)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      },
+      {
+        "name": "engine",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(up, job)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2
+      },
+      {
+        "name": "action",
+        "type": "custom",
+        "options": [
+          {"text": "All", "value": ".*", "selected": true},
+          {"text": "Allowed", "value": "allowed"},
+          {"text": "Denied", "value": "denied"},
+          {"text": "Quarantine", "value": "quarantine"}
+        ],
+        "current": {"text": "All", "value": ".*"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Security Decisions (Allowed vs Denied)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_allowed_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "legendFormat": "allowed {{tenant}}", "refId": "A"},
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[5m]))", "legendFormat": "denied {{tenant}}", "refId": "B"}
+      ]
+    },
+    {
+      "title": "Quarantine Events",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (tenant, reason) (rate(businessos_integration_quarantine_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "{{tenant}} {{reason}}", "refId": "A"}]
+    },
+    {
+      "title": "Audit Events Count (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "sum(count_over_time({job=~\"$engine\"} | json | tenant=~\"$tenant\" |~ \"(?i)audit|security|denied|allowed|quarantine|policy\" [5m]))", "refId": "A"}]
+    },
+    {
+      "title": "Denials by Reason",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 6, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (reason) (increase(businessos_integration_security_denied_total{tenant=~\"$tenant\", job=~\"$engine\"}[1h]))", "legendFormat": "{{reason}}", "refId": "A"}]
+    },
+    {
+      "title": "Full Audit Log Trail",
+      "type": "logs",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 16},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"$engine\"} | json | tenant=~\"$tenant\" |~ \"(?i)audit|security decision|denied|allowed|quarantine|policy|authorization|tenant\" | level=~\"INFO|WARN|ERROR\"", "refId": "A"}],
+      "options": {"showTime": true, "showLabels": true, "dedupStrategy": "none", "sortOrder": "Descending"}
+    },
+    {
+      "title": "Security / Compliance Alerts",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 28},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "ALERTS{alertname=~\"Security.*|Compliance.*|TenantIsolation.*|Quarantine.*\"}", "legendFormat": "{{alertname}} {{severity}} {{tenant}}", "refId": "A"}]
+    }
+  ]
+}
