@@ -1,6 +1,5 @@
 global:
   resolve_timeout: 5m
-  # slack_api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'   # or use slack_configs below
 
 route:
   group_by: ['alertname', 'severity', 'tenant', 'engine', 'job']
@@ -22,48 +21,44 @@ route:
         severity: warning
       receiver: 'warning'
     - match_re:
-        alertname: 'Security.*|Compliance.*|Tenant.*'
+        alertname: 'Security.*|Compliance.*|Tenant.*|Liquidity.*'
       receiver: 'security-compliance'
       continue: true
 
 receivers:
   - name: 'default'
-    # webhook_configs:
-    #   - url: 'http://your-webhook'
 
   - name: 'critical'
-    # PagerDuty example (uncomment and set routing_key)
+    # Set PAGERDUTY_ROUTING_KEY and/or SLACK_WEBHOOK_CRITICAL in the environment
     # pagerduty_configs:
-    #   - routing_key: 'YOUR_PAGERDUTY_ROUTING_KEY'
+    #   - routing_key: '${PAGERDUTY_ROUTING_KEY}'
     #     severity: critical
-    # Slack example
     # slack_configs:
-    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #   - api_url: '${SLACK_WEBHOOK_CRITICAL}'
     #     channel: '#alerts-critical'
-    #     title: '{{ .GroupLabels.alertname }}'
-    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}{{ end }}'
+    #     title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}*{{ .Annotations.summary }}*\n{{ .Annotations.description }}{{ end }}'
 
   - name: 'high'
     # slack_configs:
-    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #   - api_url: '${SLACK_WEBHOOK_HIGH}'
     #     channel: '#alerts-high'
 
   - name: 'warning'
     # slack_configs:
-    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #   - api_url: '${SLACK_WEBHOOK_WARNING}'
     #     channel: '#alerts-warning'
 
   - name: 'security-compliance'
-    # Dedicated channel
     # slack_configs:
-    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #   - api_url: '${SLACK_WEBHOOK_SECURITY}'
     #     channel: '#security-compliance'
     # email_configs:
-    #   - to: 'security@company.com'
-    #     from: 'alertmanager@company.com'
-    #     smarthost: 'smtp.company.com:587'
-    #     auth_username: 'alertmanager'
-    #     auth_password: 'secret'
+    #   - to: '${SECURITY_EMAIL_TO}'
+    #     from: '${SMTP_FROM}'
+    #     smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+    #     auth_username: '${SMTP_USER}'
+    #     auth_password: '${SMTP_PASSWORD}'
 
 inhibit_rules:
   - source_match:
