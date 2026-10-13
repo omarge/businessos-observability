@@ -1,0 +1,39 @@
+{
+  "title": "Reliability (Outbox/Inbox)",
+  "uid": "businessos-reliability",
+  "tags": ["businessos", "reliability"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "title": "Outbox Published Rate",
+      "type": "timeseries",
+      "targets": [{ "expr": "rate(businessos_integration_outbox_published_total[5m])", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Outbox Quarantined / Retries",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(businessos_integration_outbox_quarantined_total[5m])", "legendFormat": "quarantined", "refId": "A" },
+        { "expr": "rate(businessos_integration_outbox_retries_total[5m])", "legendFormat": "retries", "refId": "B" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Inbox Applied / Conflict",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(businessos_integration_inbox_applied_total[5m])", "legendFormat": "applied", "refId": "A" },
+        { "expr": "rate(businessos_integration_inbox_conflict_total[5m])", "legendFormat": "conflict", "refId": "B" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Relay Publish Latency",
+      "type": "timeseries",
+      "targets": [{ "expr": "histogram_quantile(0.95, rate(businessos_integration_relay_publish_latency_seconds_bucket[5m]))", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}
