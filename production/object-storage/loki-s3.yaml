@@ -1,0 +1,44 @@
+# Loki production config with S3 object storage
+# Use this instead of the local filesystem config for enterprise scale.
+
+auth_enabled: true
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  replication_factor: 3
+  ring:
+    kvstore:
+      store: memberlist
+
+storage_config:
+  aws:
+    s3: s3://businessos-loki
+    region: us-east-1
+    # Or use s3forcepathstyle and endpoint for MinIO
+  boltdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/boltdb-cache
+    shared_store: s3
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: boltdb-shipper
+      object_store: s3
+      schema: v12
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  retention_period: 744h   # 31 days
+  max_query_series: 500
+  max_query_parallelism: 32
+
+compactor:
+  working_directory: /loki/compactor
+  shared_store: s3
+  retention_enabled: true
