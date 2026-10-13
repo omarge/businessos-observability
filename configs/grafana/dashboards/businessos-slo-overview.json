@@ -1,0 +1,67 @@
+{
+  "uid": "businessos-slo-overview",
+  "title": "SLO Overview (Recording Rules)",
+  "tags": ["businessos", "slo", "recording-rules", "enterprise"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    {
+      "title": "Payment Error Ratio",
+      "type": "gauge",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:payment_error_ratio:rate5m", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.01}, {"color": "red", "value": 0.05}]}}}
+    },
+    {
+      "title": "Fraud Decline Ratio",
+      "type": "gauge",
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:fraud_decline_ratio:rate5m", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.1}, {"color": "red", "value": 0.3}]}}}
+    },
+    {
+      "title": "HTTP 5xx Ratio (by job)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:http_error_ratio:rate5m", "legendFormat": "{{job}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit"}}
+    },
+    {
+      "title": "Domain Rates (5m)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "businessos:payment_authorized:rate5m", "legendFormat": "payment authorized", "refId": "A"},
+        {"expr": "businessos:fraud_approved:rate5m", "legendFormat": "fraud approved", "refId": "B"},
+        {"expr": "businessos:settlement_completed:rate5m", "legendFormat": "settlement completed", "refId": "C"},
+        {"expr": "businessos:payout_completed:rate5m", "legendFormat": "payout completed", "refId": "D"}
+      ]
+    },
+    {
+      "title": "Domain Latencies p95",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "businessos:payment_latency:p95", "legendFormat": "payment", "refId": "A"},
+        {"expr": "businessos:fraud_latency:p95", "legendFormat": "fraud", "refId": "B"},
+        {"expr": "businessos:settlement_latency:p95", "legendFormat": "settlement", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "JVM Heap Ratio",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:jvm_heap_ratio", "legendFormat": "{{job}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1}}
+    }
+  ]
+}
