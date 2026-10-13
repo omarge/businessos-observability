@@ -31,6 +31,8 @@ All dashboards support **multi-tenancy** (tenant variable), correlation with log
 | **Fraud Engine** | Fraud decisions, latency, risk-related errors |
 | **Settlement / Payout / Reconciliation** | Breaks, pending reports, outbox, related logs |
 | **Distributed Traces** | Tempo TraceQL search, service map, slow traces |
+| **Security & Compliance** | Denials, allowed, denial rate, quarantine, policy/audit logs |
+| **Audit Trail** | Full audit log trail, security decisions (allowed/denied), quarantine, alerts |
 | Plus existing: Overview, Reliability, Security, Engines overview | |
 
 Dashboards appear under the **BusinessOS** folder after `docker compose up`.
@@ -68,8 +70,9 @@ The aggregator and main engines already expose Prometheus metrics after the obse
 - Cardinality control (no high-cardinality tags on business metrics).
 - Full correlation between traces (Tempo), logs (Loki) and metrics (Prometheus).
 - Error-focused logs dashboard for rapid troubleshooting.
+- Dedicated Audit Trail dashboard for compliance and security decisions.
 - Retention policies, remote-write ready for Mimir.
-- Alertmanager with severity routing.
+- Alertmanager with severity routing (including security-compliance channel).
 - Dashboards-as-code.
 - Kafka + Postgres exporters.
 - Fail-closed health probes as gauges.
