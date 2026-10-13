@@ -23,23 +23,77 @@ scrape_configs:
           service: aggregator
           engine: transport-fabric
 
-  - job_name: 'businessos-engines'
-    metrics_path: /metrics
+  - job_name: 'businessos-payment'
+    metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ['host.docker.internal:8081']
+      - targets: ['host.docker.internal:8082']
         labels:
-          service: example-engine
+          service: payment-engine
           engine: payment
+
+  - job_name: 'businessos-settlement'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+        labels:
+          service: settlement-engine
+          engine: settlement
+
+  - job_name: 'businessos-payout'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8084']
+        labels:
+          service: payout-engine
+          engine: payout
+
+  - job_name: 'businessos-reconciliation'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8085']
+        labels:
+          service: reconciliation-engine
+          engine: reconciliation
 
   - job_name: 'businessos-treasury'
     metrics_path: /actuator/prometheus
-    scrape_interval: 15s
     static_configs:
-      - targets: ['host.docker.internal:8086']  # Adjust port to your treasury-engine
+      - targets: ['host.docker.internal:8086']
         labels:
           service: treasury-liquidity-engine
           engine: treasury
-          application: treasury-liquidity-engine
+
+  - job_name: 'businessos-fraud'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8087']
+        labels:
+          service: fraud-engine
+          engine: fraud
+
+  - job_name: 'businessos-merchant'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8088']
+        labels:
+          service: merchant-engine
+          engine: merchant
+
+  - job_name: 'businessos-chargeback'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8089']
+        labels:
+          service: chargeback-engine
+          engine: chargeback
+
+  - job_name: 'businessos-security'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8090']
+        labels:
+          service: security-engine
+          engine: security
 
   - job_name: 'node-exporter'
     static_configs:
