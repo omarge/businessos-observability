@@ -18,7 +18,7 @@ scrape_configs:
   - job_name: 'businessos-aggregator'
     metrics_path: /metrics
     static_configs:
-      - targets: ['host.docker.internal:8080']  # Adjust to your aggregator metrics port
+      - targets: ['host.docker.internal:8080']
         labels:
           service: aggregator
           engine: transport-fabric
@@ -26,13 +26,20 @@ scrape_configs:
   - job_name: 'businessos-engines'
     metrics_path: /metrics
     static_configs:
-      # Add each engine's metrics endpoint. Example:
-      # - targets: ['payment-engine:8080']
-      #   labels: { service: payment-engine, engine: payment }
       - targets: ['host.docker.internal:8081']
         labels:
           service: example-engine
           engine: payment
+
+  - job_name: 'businessos-treasury'
+    metrics_path: /actuator/prometheus
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['host.docker.internal:8086']  # Adjust port to your treasury-engine
+        labels:
+          service: treasury-liquidity-engine
+          engine: treasury
+          application: treasury-liquidity-engine
 
   - job_name: 'node-exporter'
     static_configs:
