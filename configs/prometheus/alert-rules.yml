@@ -65,3 +65,50 @@ groups:
         annotations:
           summary: "Security denials spiking"
           description: "Check producer/consumer authorization or tenant mismatch."
+
+  - name: businessos-security-compliance
+    rules:
+      - alert: SecurityDenialRateHigh
+        expr: |
+          (
+            sum by (tenant, job) (rate(businessos_integration_security_denied_total[5m]))
+            /
+            clamp_min(
+              sum by (tenant, job) (rate(businessos_integration_security_allowed_total[5m])) +
+              sum by (tenant, job) (rate(businessos_integration_security_denied_total[5m])),
+              0.001
+            )
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "High security denial rate for tenant {{ $labels.tenant }}"
+          description: "Denial rate > 10%. Possible misconfiguration, attack, or tenant isolation issue."
+
+      - alert: TenantIsolationViolationSuspected
+        expr: increase(businessos_integration_security_denied_total{reason=~".*tenant.*|.*isolation.*|.*mismatch.*"}[10m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Possible tenant isolation violation"
+          description: "Elevated denials related to tenant mismatch or isolation. Immediate review required."
+
+      - alert: QuarantineSpike
+        expr: rate(businessos_integration_quarantine_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Quarantine events spiking"
+          description: "Messages being quarantined. Check security policy and payload validity."
+
+      - alert: ComplianceAuditFailure
+        expr: increase(businessos_integration_security_denied_total{reason=~".*audit.*|.*compliance.*"}[15m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Compliance / audit related denial"
+          description: "Review audit trail and policy decisions."
