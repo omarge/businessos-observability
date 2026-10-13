@@ -34,7 +34,7 @@ Los dashboards pre-provisionados aparecen en la carpeta **BusinessOS**.
 
 ### Métricas
 - Micrometer (engines Java) + scrape de Prometheus + OTLP.
-- Métricas de dominio: `businessos.payment.*`, `businessos.fraud.*`, `businessos.settlement.*`, `businessos.payout.*`, `businessos.reconciliation.*`, `businessos.merchant.*`, `businessos.chargeback.*`, `businessos.security.*`, **`businessos.treasury.liquidity.*`** (reservas, posición, funding, observaciones).
+- Métricas de dominio: `businessos.payment.*`, `businessos.fraud.*`, `businessos.settlement.*`, `businessos.payout.*`, `businessos.reconciliation.*`, `businessos.merchant.*`, `businessos.chargeback.*`, `businessos.security.*`, **`businessos.treasury.liquidity.*`**.
 - Confiabilidad (outbox/inbox), decisiones de seguridad, reconciliación, health probes, JVM, lag de Kafka, Postgres.
 - Recording rules pre-calculadas (tasas, ratios de error, latencias p95, heap).
 
@@ -54,6 +54,63 @@ Los dashboards pre-provisionados aparecen en la carpeta **BusinessOS**.
 - Compliance y aislamiento de tenants.
 - SLO de errores y latencia (PaymentErrorRatioHigh, FraudDeclineRatioHigh, LatencySLOBreach, HttpErrorRatioHigh, DomainLatencySpike).
 - **Liquidez**: LiquidityReservationFailureHigh, LiquidityFundingFailed, LiquidityInsufficientSpike, LiquidityReservationLatencyHigh.
+
+## Métricas de Liquidez
+
+Implementadas en el engine `businessos-treasury-liquidity-engine` mediante las clases `LiquidityMetrics` y `TreasuryMetrics`, registradas por aspectos AOP.
+
+### Contadores de reserva
+| Métrica | Descripción |
+|----------|-------------|
+| `businessos_treasury_liquidity_reservation_created_total` | Reservas de liquidez creadas |
+| `businessos_treasury_liquidity_reservation_released_total` | Reservas liberadas |
+| `businessos_treasury_liquidity_reservation_expired_total` | Reservas expiradas |
+| `businessos_treasury_liquidity_reservation_failed_total` | Reservas fallidas |
+
+### Posición de caja y observaciones
+| Métrica | Descripción |
+|----------|-------------|
+| `businessos_treasury_liquidity_position_updated_total` | Actualizaciones de posición de caja |
+| `businessos_treasury_liquidity_position_queried_total` | Consultas de posición de caja |
+| `businessos_treasury_liquidity_observation_recorded_total` | Observaciones de caja registradas |
+
+### Funding
+| Métrica | Descripción |
+|----------|-------------|
+| `businessos_treasury_liquidity_funding_planned_total` | Planes de funding creados |
+| `businessos_treasury_liquidity_funding_executed_total` | Ejecuciones de funding completadas |
+| `businessos_treasury_liquidity_funding_failed_total` | Ejecuciones de funding fallidas |
+
+### Reservas autoritativas
+| Métrica | Descripción |
+|----------|-------------|
+| `businessos_treasury_liquidity_authoritative_authorized_total` | Reservas autoritativas autorizadas |
+| `businessos_treasury_liquidity_authoritative_confirmed_total` | Reservas autoritativas confirmadas |
+
+### Latencias
+| Métrica | Descripción |
+|----------|-------------|
+| `businessos_treasury_liquidity_reservation_latency_seconds` | Latencia de reserva |
+| `businessos_treasury_liquidity_position_latency_seconds` | Latencia de posición |
+| `businessos_treasury_liquidity_funding_latency_seconds` | Latencia de funding |
+
+### Métricas generales de Treasury (también cubren liquidez)
+| Métrica | Descripción |
+|----------|-------------|
+| `businessos_treasury_liquidity_check_total` | Checks de liquidez |
+| `businessos_treasury_liquidity_insufficient_total` | Eventos de liquidez insuficiente |
+| `businessos_treasury_transfer_initiated_total` | Transfers iniciados |
+| `businessos_treasury_transfer_completed_total` | Transfers completados |
+| `businessos_treasury_transfer_failed_total` | Transfers fallidos |
+| `businessos_treasury_transfer_latency_seconds` | Latencia de transfer |
+
+### Servicios instrumentados
+El aspecto `LiquidityMetricsAspect` cubre de forma precisa:
+- `LiquidityReservationService`
+- `CashPositionService`
+- `CashObservationService`
+- `FundingService`
+- `AuthoritativeReservationService`
 
 ## Dashboards pre-provisionados
 
