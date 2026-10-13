@@ -1,0 +1,55 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'businessos-aggregator'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Adjust to your aggregator metrics port
+        labels:
+          service: aggregator
+          engine: transport-fabric
+
+  - job_name: 'businessos-engines'
+    metrics_path: /metrics
+    static_configs:
+      # Add each engine's metrics endpoint. Example:
+      # - targets: ['payment-engine:8080']
+      #   labels: { service: payment-engine, engine: payment }
+      - targets: ['host.docker.internal:8081']
+        labels:
+          service: example-engine
+          engine: payment
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'kafka-exporter'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
