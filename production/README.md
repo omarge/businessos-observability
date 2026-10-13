@@ -1,6 +1,6 @@
 # Production Enterprise Configurations
 
-These examples implement the three recommended production steps from the main documentation.
+These examples implement the recommended production steps.
 
 ## 1. Replace Prometheus with Grafana Mimir (multi-tenant)
 
@@ -25,6 +25,16 @@ Replace the local filesystem configs in the docker-compose / Helm values with th
 - `k8s/otel-collector-daemonset.yaml` — OTel Collector DaemonSet for OTLP reception and processing.
 
 Create the `observability` namespace, ConfigMaps for the configs, and apply the manifests. Adjust resource limits and volume mounts for your cluster.
+
+## 4. OpenTelemetry Java agent (traces)
+
+File: `otel/javaagent-env.sh`
+
+Source this file (or copy the env vars) before starting any engine. The agent sends traces and logs to the OTel Collector (which forwards to Tempo + Loki). Metrics continue to be scraped by Prometheus.
+
+## 5. Alertmanager receivers
+
+Edit `../configs/alertmanager/alertmanager.yml` and uncomment the Slack / PagerDuty / email blocks. Inject credentials via environment variables or a secrets manager (do not commit real tokens).
 
 ## Next steps
 
