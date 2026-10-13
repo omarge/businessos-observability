@@ -2,6 +2,8 @@
 
 Enterprise-grade open-source observability platform for all BusinessOS / Kashbit engines (merchant, payment, fraud, financial-subledger, settlement, treasury, payout, reconciliation, chargeback-disputes, transport-fabric, security) and the aggregator integration layer.
 
+**Documentación completa en español:** [README.es.md](README.es.md)
+
 ## Stack (LGTM + more)
 
 | Component | Purpose | Port |
@@ -26,6 +28,8 @@ All dashboards support **multi-tenancy** (tenant variable), correlation with log
 |-----------|---------|
 | **BusinessOS Multi-Tenant Overview** | Engines health, request rates, latency, active tenants, security denials |
 | **Domain Metrics (All Engines)** | Payment, Fraud, Settlement, Payout, Reconciliation, Chargeback, Merchant, Security domain counters & latencies |
+| **SLO Overview** | Gauges and timeseries based on recording rules |
+| **Executive Summary** | High-level KPIs |
 | **Errors & Logs (Troubleshooting)** | Loki-powered error/warn logs, top error messages, trace_id correlation |
 | **Kafka & Reliability** | Outbox/inbox, consumer lag, quarantine, by tenant |
 | **Payment Engine** | Payment-specific RED metrics + logs, filtered by tenant |
@@ -34,7 +38,7 @@ All dashboards support **multi-tenancy** (tenant variable), correlation with log
 | **Distributed Traces** | Tempo TraceQL search, service map, slow traces |
 | **Security & Compliance** | Denials, allowed, denial rate, quarantine, policy/audit logs |
 | **Audit Trail** | Full audit log trail, security decisions (allowed/denied), quarantine, alerts |
-| Plus existing: Overview, Reliability, Security, Engines overview, Anomaly Detection, Performance | |
+| Plus: Anomaly Detection, Performance, Treasury | |
 
 Dashboards appear under the **BusinessOS** folder after `docker compose up`.
 
@@ -43,7 +47,7 @@ Dashboards appear under the **BusinessOS** folder after `docker compose up`.
 - **Metrics**: Micrometer (Java engines) + Prometheus scrape + OTLP. Includes domain metrics (`businessos.payment.*`, `businessos.fraud.*`, etc.), reliability (outbox/inbox), security decisions, reconciliation, health probes, JVM, Kafka lag, Postgres.
 - **Logs**: Structured logs from engines (via Alloy or OTLP) with `trace_id` and `tenant` correlation. Error rates, unknown states, quarantine events.
 - **Traces**: OpenTelemetry (Java agent or SDK) for end-to-end payment/settlement/payout flows. Correlated to logs and metrics.
-- **Alerts**: Money-critical rules (liveness, Postgres down, Kafka down, reconciliation lag, unknown state) + RED metrics, lag, error rates. Extend with tenant labels as needed.
+- **Alerts**: Money-critical rules + SLO error/latency alerts + security/compliance.
 
 ## Quick start
 
@@ -57,35 +61,31 @@ Open Grafana: http://localhost:3000 (admin / admin)
 
 ## Instrumenting engines
 
-See the `instrumentation/` directory for:
-- Adding `micrometer-registry-prometheus` + Actuator `/actuator/prometheus` to any Java engine.
-- OpenTelemetry Java agent or manual SDK for traces + logs.
-- Domain metric classes following the Aggregator cardinality law (`PaymentMetrics`, `FraudMetrics`, etc.).
-- Always tag with low-cardinality `engine` (and optionally `application`) for dashboards.
+See the `instrumentation/` directory and the Spanish documentation ([README.es.md](README.es.md)) for:
+- Adding `micrometer-registry-prometheus` + Actuator `/actuator/prometheus`.
+- Domain metric classes following the Aggregator cardinality law.
+- Scrape job configuration.
 
-All main engines now expose domain Micrometer metrics via Actuator after the observability PRs. Prometheus scrape jobs are pre-configured (adjust ports in `prometheus.yml` to match your deployment).
+All main engines expose domain Micrometer metrics via Actuator. Adjust ports in `configs/prometheus/prometheus.yml` to match your deployment.
 
 ## Enterprise features
 
-- Multi-tenancy variables on all major dashboards.
+- Multi-tenancy variables on major dashboards.
 - Cardinality control (no high-cardinality tags on business metrics).
 - Full correlation between traces (Tempo), logs (Loki) and metrics (Prometheus).
-- Unified Domain Metrics dashboard covering all engines.
-- Error-focused logs dashboard for rapid troubleshooting.
-- Dedicated Audit Trail dashboard for compliance and security decisions.
-- Retention policies, remote-write ready for Mimir.
-- Alertmanager with severity routing (including security-compliance channel).
+- Recording rules for rates, error ratios and p95 latencies.
+- SLO and Executive Summary dashboards.
+- Error-focused logs and Audit Trail dashboards.
+- Alertmanager with severity routing.
 - Dashboards-as-code.
 - Kafka + Postgres exporters.
-- Fail-closed health probes as gauges.
 
 ## Production notes
 
 This compose is suitable for staging / single-node. For full enterprise scale:
-- Replace Prometheus with Grafana Mimir (multi-tenant).
-- Use object storage (S3/GCS) for Loki and Tempo.
+- Replace Prometheus with Grafana Mimir.
+- Use object storage for Loki and Tempo.
 - Deploy Alloy / OTel Collector as DaemonSets on Kubernetes.
-- Enable Grafana RBAC / teams per tenant if needed (Grafana OSS supports basic org/user; Enterprise for advanced).
-- Consider Grafana Cloud or Enterprise for advanced RBAC, reporting and on-call.
+- Consider Grafana Cloud or Enterprise for advanced RBAC and reporting.
 
 Official minimal alternative: `grafana/otel-lgtm` image.
