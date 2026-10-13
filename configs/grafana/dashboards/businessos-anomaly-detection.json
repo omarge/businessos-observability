@@ -1,0 +1,83 @@
+{
+  "uid": "businessos-anomaly-detection",
+  "title": "Log Anomaly Detection (Multi-Tenant)",
+  "tags": ["businessos", "anomaly", "logs", "detection", "multitenancy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "textbox",
+        "current": {"text": ".*", "value": ".*"},
+        "label": "Tenant (regex)"
+      },
+      {
+        "name": "engine",
+        "type": "textbox",
+        "current": {"text": ".*", "value": ".*"},
+        "label": "Engine / job (regex)"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Error Volume Anomaly (vs 1h avg)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [
+        {"expr": "sum(count_over_time({job=~\"$engine\"} | json | level=~\"ERROR\" | tenant=~\"$tenant\" [5m]))", "legendFormat": "errors 5m", "refId": "A"},
+        {"expr": "avg_over_time(sum(count_over_time({job=~\"$engine\"} | json | level=~\"ERROR\" | tenant=~\"$tenant\" [5m]))[1h:5m])", "legendFormat": "1h average", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 10}}}
+    },
+    {
+      "title": "Log Volume Spike Detection",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [
+        {"expr": "sum(count_over_time({job=~\"$engine\"} | tenant=~\"$tenant\" [5m]))", "legendFormat": "total logs 5m", "refId": "A"},
+        {"expr": "avg_over_time(sum(count_over_time({job=~\"$engine\"} | tenant=~\"$tenant\" [5m]))[1h:5m]) * 3", "legendFormat": "3x baseline", "refId": "B"}
+      ]
+    },
+    {
+      "title": "Anomalous Error Patterns (top new messages)",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "topk(15, sum by (msg) (count_over_time({job=~\"$engine\"} | json | level=~\"ERROR\" | tenant=~\"$tenant\" [15m])))", "refId": "A"}]
+    },
+    {
+      "title": "Security / Quarantine Anomalies",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (tenant) (rate(businessos_integration_security_denied_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "denials {{tenant}}", "refId": "A"},
+        {"expr": "sum by (tenant) (rate(businessos_integration_quarantine_total{tenant=~\"$tenant\"}[5m]))", "legendFormat": "quarantine {{tenant}}", "refId": "B"}
+      ]
+    },
+    {
+      "title": "Latency Anomaly (p99 vs baseline)",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.99, sum by (job, le) (rate(http_server_requests_seconds_bucket{job=~\"$engine\"}[5m])))", "legendFormat": "p99 {{job}}", "refId": "A"},
+        {"expr": "avg_over_time(histogram_quantile(0.99, sum by (job, le) (rate(http_server_requests_seconds_bucket{job=~\"$engine\"}[5m])))[1h:5m])", "legendFormat": "p99 1h avg {{job}}", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "title": "Live Anomalous Logs (errors + spikes)",
+      "type": "logs",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 22},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"expr": "{job=~\"$engine\"} | json | tenant=~\"$tenant\" | level=~\"ERROR|WARN\" |~ \"(?i)exception|timeout|failed|denied|quarantine|spike|anomaly\"", "refId": "A"}]
+    }
+  ]
+}
