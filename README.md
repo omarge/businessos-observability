@@ -4,6 +4,76 @@ Enterprise-grade open-source observability platform for all BusinessOS / Kashbit
 
 **Documentación completa en español:** [README.es.md](README.es.md)
 
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Engines
+    P[Payment]
+    F[Fraud]
+    S[Settlement]
+    Po[Payout]
+    R[Reconciliation]
+    M[Merchant]
+    C[Chargeback]
+    Sec[Security]
+    T[Treasury & Liquidity]
+  end
+
+  subgraph Collect
+    Alloy[Grafana Alloy]
+    OTel[OTel Collector]
+  end
+
+  subgraph Store
+    Prom[Prometheus]
+    Loki[Loki]
+    Tempo[Tempo]
+  end
+
+  subgraph UI
+    Graf[Grafana]
+    AM[Alertmanager]
+  end
+
+  Engines -->|Micrometer /actuator/prometheus| Prom
+  Engines -->|OTel Java agent| OTel
+  Alloy -->|logs| Loki
+  OTel -->|traces| Tempo
+  OTel -->|logs| Loki
+  Prom -->|alerts| AM
+  Prom --> Graf
+  Loki --> Graf
+  Tempo --> Graf
+  AM -->|Slack / PagerDuty / Email| Notify[Notifications]
+```
+
+### How it works
+
+1. **Metrics** — Each engine exposes `/actuator/prometheus` (Micrometer). Prometheus scrapes periodically. Domain classes (`PaymentMetrics`, `LiquidityMetrics`, etc.) and AOP aspects record business counters and timers.
+2. **Traces** — The OpenTelemetry Java agent (baked into every engine Dockerfile) instruments calls and sends them via OTLP to the Collector, which persists them in Tempo.
+3. **Logs** — Alloy (or the Collector) collects container logs and ships them to Loki. Logs include `trace_id` for correlation with Tempo.
+4. **Alerts** — Prometheus evaluates rules (including liquidity). Alertmanager routes by severity to Slack, PagerDuty or email.
+5. **Visualization** — Grafana queries Prometheus, Loki and Tempo. Domain, SLO, Executive and Liquidity dashboards show correlated signals.
+
+```mermaid
+sequenceDiagram
+  participant Engine
+  participant Prom as Prometheus
+  participant OTel as OTel Collector
+  participant Tempo
+  participant Loki
+  participant Graf as Grafana
+
+  Engine->>Prom: scrape /actuator/prometheus
+  Engine->>OTel: traces + logs (OTLP)
+  OTel->>Tempo: traces
+  OTel->>Loki: logs
+  Prom->>Graf: metrics + recording rules
+  Loki->>Graf: logs
+  Tempo->>Graf: traces
+```
+
 ## Stack (LGTM + more)
 
 | Component | Purpose | Port |
