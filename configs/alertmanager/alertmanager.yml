@@ -1,5 +1,6 @@
 global:
   resolve_timeout: 5m
+  # slack_api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'   # or use slack_configs below
 
 route:
   group_by: ['alertname', 'severity', 'tenant', 'engine', 'job']
@@ -31,22 +32,38 @@ receivers:
     #   - url: 'http://your-webhook'
 
   - name: 'critical'
-    # Slack / PagerDuty / email for money-critical and liveness
-    # webhook_configs:
-    #   - url: 'http://pagerduty-or-slack-critical'
+    # PagerDuty example (uncomment and set routing_key)
+    # pagerduty_configs:
+    #   - routing_key: 'YOUR_PAGERDUTY_ROUTING_KEY'
+    #     severity: critical
+    # Slack example
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #     channel: '#alerts-critical'
+    #     title: '{{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}{{ end }}'
 
   - name: 'high'
-    # webhook_configs:
-    #   - url: 'http://slack-high'
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #     channel: '#alerts-high'
 
   - name: 'warning'
-    # webhook_configs:
-    #   - url: 'http://slack-warnings'
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #     channel: '#alerts-warning'
 
   - name: 'security-compliance'
-    # Dedicated channel for security denials, tenant isolation, audit, compliance
-    # webhook_configs:
-    #   - url: 'http://security-channel'
+    # Dedicated channel
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+    #     channel: '#security-compliance'
+    # email_configs:
+    #   - to: 'security@company.com'
+    #     from: 'alertmanager@company.com'
+    #     smarthost: 'smtp.company.com:587'
+    #     auth_username: 'alertmanager'
+    #     auth_password: 'secret'
 
 inhibit_rules:
   - source_match:
