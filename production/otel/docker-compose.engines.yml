@@ -1,0 +1,35 @@
+# Overlay to run engines with the OpenTelemetry Java agent.
+# Usage:
+#   docker compose -f docker-compose.yml -f production/otel/docker-compose.engines.yml up -d
+# Adjust image names and ports to match your builds.
+
+services:
+  payment-engine:
+    image: businessos-payment-engine:latest
+    environment:
+      OTEL_SERVICE_NAME: payment-engine
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local,engine=payment
+    ports:
+      - "8082:8080"
+    depends_on:
+      - otel-collector
+
+  fraud-engine:
+    image: businessos-fraud-engine:latest
+    environment:
+      OTEL_SERVICE_NAME: fraud-engine
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local,engine=fraud
+    ports:
+      - "8087:8080"
+    depends_on:
+      - otel-collector
+
+  treasury-liquidity-engine:
+    image: businessos-treasury-liquidity-engine:latest
+    environment:
+      OTEL_SERVICE_NAME: treasury-liquidity-engine
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local,engine=treasury
+    ports:
+      - "8086:8080"
+    depends_on:
+      - otel-collector
