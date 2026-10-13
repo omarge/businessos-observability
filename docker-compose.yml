@@ -1,0 +1,159 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--enable-feature=exemplar-storage'
+    depends_on:
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./configs/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./configs/loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: tempo
+    restart: unless-stopped
+    ports:
+      - "3200:3200"
+      - "4317"  # OTLP gRPC (internal)
+    volumes:
+      - ./configs/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./configs/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics from collector
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  alloy:
+    image: grafana/alloy:v1.4.2
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./configs/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    ports:
+      - "12345:12345"
+    depends_on:
+      - loki
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor correlations
+    volumes:
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.8.0
+    container_name: kafka-exporter
+    restart: unless-stopped
+    ports:
+      - "9308:9308"
+    command:
+      - '--kafka.server=${KAFKA_BROKER:-kafka:9092}'
+      - '--web.listen-address=:9308'
+    # Set KAFKA_BROKER in .env or override command for your brokers
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-businessos}?sslmode=disable
+
+volumes:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:
