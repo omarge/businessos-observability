@@ -1,0 +1,80 @@
+{
+  "uid": "businessos-executive-summary",
+  "title": "Executive Summary",
+  "tags": ["businessos", "executive", "summary", "enterprise"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    {
+      "title": "Engines Up",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "count(up == 1)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}}
+    },
+    {
+      "title": "Payment Error %",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:payment_error_ratio:rate5m * 100", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 2}}
+    },
+    {
+      "title": "Fraud Decline %",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:fraud_decline_ratio:rate5m * 100", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 2}}
+    },
+    {
+      "title": "Recon Breaks (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:reconciliation_break:rate5m", "refId": "A"}]
+    },
+    {
+      "title": "Security Denials (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:security_denied:rate5m", "refId": "A"}]
+    },
+    {
+      "title": "Chargebacks Opened (5m)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "businessos:chargeback_opened:rate5m", "refId": "A"}]
+    },
+    {
+      "title": "Key Domain Volumes",
+      "type": "timeseries",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "businessos:payment_authorized:rate5m", "legendFormat": "Payments authorized", "refId": "A"},
+        {"expr": "businessos:fraud_approved:rate5m", "legendFormat": "Fraud approved", "refId": "B"},
+        {"expr": "businessos:settlement_completed:rate5m", "legendFormat": "Settlements completed", "refId": "C"},
+        {"expr": "businessos:payout_completed:rate5m", "legendFormat": "Payouts completed", "refId": "D"}
+      ]
+    },
+    {
+      "title": "Critical Latencies p95",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "businessos:payment_latency:p95", "legendFormat": "Payment", "refId": "A"},
+        {"expr": "businessos:fraud_latency:p95", "legendFormat": "Fraud", "refId": "B"},
+        {"expr": "businessos:settlement_latency:p95", "legendFormat": "Settlement", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    }
+  ]
+}
