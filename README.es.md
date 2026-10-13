@@ -34,7 +34,7 @@ Los dashboards pre-provisionados aparecen en la carpeta **BusinessOS**.
 
 ### Métricas
 - Micrometer (engines Java) + scrape de Prometheus + OTLP.
-- Métricas de dominio: `businessos.payment.*`, `businessos.fraud.*`, `businessos.settlement.*`, `businessos.payout.*`, `businessos.reconciliation.*`, `businessos.merchant.*`, `businessos.chargeback.*`, `businessos.security.*`.
+- Métricas de dominio: `businessos.payment.*`, `businessos.fraud.*`, `businessos.settlement.*`, `businessos.payout.*`, `businessos.reconciliation.*`, `businessos.merchant.*`, `businessos.chargeback.*`, `businessos.security.*`, **`businessos.treasury.liquidity.*`** (reservas, posición, funding, observaciones).
 - Confiabilidad (outbox/inbox), decisiones de seguridad, reconciliación, health probes, JVM, lag de Kafka, Postgres.
 - Recording rules pre-calculadas (tasas, ratios de error, latencias p95, heap).
 
@@ -44,14 +44,16 @@ Los dashboards pre-provisionados aparecen en la carpeta **BusinessOS**.
 - Detección de errores, estados desconocidos y eventos de quarantine.
 
 ### Traces
-- OpenTelemetry (Java agent o SDK) para flujos end-to-end de payment/settlement/payout.
+- OpenTelemetry **Java agent** incluido en el Dockerfile de cada engine.
 - Correlación con logs y métricas en Grafana.
+- Configuración y overlay en `production/otel/`.
 
 ### Alertas
 - Críticas de dinero (liveness, Postgres down, Kafka down, lag de reconciliación).
 - Confiabilidad (outbox pending, denials de seguridad).
 - Compliance y aislamiento de tenants.
 - SLO de errores y latencia (PaymentErrorRatioHigh, FraudDeclineRatioHigh, LatencySLOBreach, HttpErrorRatioHigh, DomainLatencySpike).
+- **Liquidez**: LiquidityReservationFailureHigh, LiquidityFundingFailed, LiquidityInsufficientSpike, LiquidityReservationLatencyHigh.
 
 ## Dashboards pre-provisionados
 
@@ -60,7 +62,7 @@ Todos soportan variables de multi-tenancy (cuando aplica), correlación con logs
 | Dashboard | Propósito |
 |-----------|-----------|
 | **Multi-Tenant Overview** | Salud de engines, rates, latencia, tenants activos, denials |
-| **Domain Metrics (All Engines)** | Contadores y latencias de dominio de todos los engines |
+| **Domain Metrics (All Engines)** | Contadores y latencias de dominio (incluye paneles de Liquidity Reservations y Funding & Position) |
 | **SLO Overview** | Gauges y timeseries basados en recording rules (error ratios, latencias p95, heap) |
 | **Executive Summary** | KPIs de alto nivel para dirección (engines up, error %, volúmenes, latencias) |
 | **Errors & Logs (Troubleshooting)** | Logs de error/warn en Loki, top messages, correlación por trace_id |
@@ -80,6 +82,7 @@ Todos soportan variables de multi-tenancy (cuando aplica), correlación con logs
 implementation 'io.micrometer:micrometer-core'
 implementation 'io.micrometer:micrometer-registry-prometheus'
 implementation 'org.springframework.boot:spring-boot-starter-actuator'
+implementation 'org.springframework.boot:spring-boot-starter-aop'   # para aspectos de métricas
 ```
 
 ### Exposición (application.yml)
@@ -101,7 +104,19 @@ Siguen el patrón del Aggregator (`ReliabilityMetrics`, `SecurityMetrics`):
 - **Ley de cardinalidad**: no se permiten tags de alta cardinalidad (`tenant_id`, `payment_id`, `correlation_id`, etc.).
 - Nombres semánticos estables (`businessos.<engine>.<accion>`).
 
-Ejemplos ya implementados: `PaymentMetrics`, `FraudMetrics`, `SettlementMetrics`, `PayoutMetrics`, `ReconciliationEngineMetrics`, `MerchantMetrics`, `ChargebackMetrics`, `SecurityEngineMetrics`.
+Ejemplos implementados: `PaymentMetrics`, `FraudMetrics`, `SettlementMetrics`, `PayoutMetrics`, `ReconciliationEngineMetrics`, `MerchantMetrics`, `ChargebackMetrics`, `SecurityEngineMetrics`, `TreasuryMetrics`, **`LiquidityMetrics`**.
+
+Los aspectos AOP registran las métricas en los flujos de negocio sin modificar la lógica.
+
+### OpenTelemetry Java agent
+
+Todos los engines incluyen un `Dockerfile` que descarga el agent y arranca con `-javaagent`.
+
+Archivos en `production/otel/`:
+- `Dockerfile.engine` — patrón reutilizable
+- `docker-compose.engines.yml` — overlay para levantar engines contra el Collector local
+- `javaagent-env.sh` — variables para ejecución no-Docker
+- `README.md` — pasos de uso
 
 ### Scrape de Prometheus
 Los jobs están pre-configurados en `configs/prometheus/prometheus.yml`. Ajusta los puertos según tu despliegue:
@@ -137,8 +152,9 @@ Usadas por los dashboards SLO y Executive Summary.
 | Reliability | OutboxPendingHigh, SecurityDenialsSpike |
 | Security & Compliance | SecurityDenialRateHigh, TenantIsolationViolationSuspected, QuarantineSpike |
 | SLO Errores/Latencia | PaymentErrorRatioHigh, FraudDeclineRatioHigh, LatencySLOBreach, HttpErrorRatioHigh, DomainLatencySpike |
+| **Liquidity** | LiquidityReservationFailureHigh, LiquidityFundingFailed, LiquidityInsufficientSpike, LiquidityReservationLatencyHigh |
 
-Enrutamiento en Alertmanager por severidad y canal dedicado de security-compliance.
+Enrutamiento en Alertmanager por severidad. Los receptores de Slack/PagerDuty/email usan placeholders de variables de entorno (descomentar y setear secretos al desplegar).
 
 ## Características enterprise
 
@@ -149,6 +165,7 @@ Enrutamiento en Alertmanager por severidad y canal dedicado de security-complian
 - Retención configurable; listo para remote-write a Mimir.
 - Exporters de Kafka y Postgres.
 - Health probes fail-closed como gauges.
+- Java agent de OpenTelemetry en todos los engines.
 
 ## Notas de producción (los 3 puntos)
 
@@ -164,6 +181,9 @@ Este compose es adecuado para staging / nodo único. Para escala enterprise se i
 3. **Alloy y OpenTelemetry Collector como DaemonSets en Kubernetes**  
    → `production/k8s/alloy-daemonset.yaml`  
    → `production/k8s/otel-collector-daemonset.yaml`
+
+4. **Java agent en runtime**  
+   → `production/otel/` (Dockerfile, compose overlay, env script)
 
 Ver `production/README.md` para instrucciones de uso. Adicionalmente:
 - Habilita RBAC / teams por tenant en Grafana (OSS básico; Enterprise para avanzado).
@@ -182,7 +202,8 @@ configs/
   alertmanager/
   alloy/
   otel-collector/
-production/       # configs enterprise (Mimir, S3, DaemonSets K8s)
+production/       # configs enterprise (Mimir, S3, DaemonSets K8s, OTel agent)
+  otel/           # Dockerfile.engine, compose overlay, javaagent-env.sh
 instrumentation/  # guías para agregar Micrometer/OTel a engines
 docker-compose.yml
 ```
