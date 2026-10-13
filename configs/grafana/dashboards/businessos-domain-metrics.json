@@ -4,7 +4,7 @@
   "tags": ["businessos", "domain", "micrometer", "engines"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "templating": {
     "list": [
@@ -77,9 +77,34 @@
       ]
     },
     {
+      "title": "Liquidity Reservations",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_treasury_liquidity_reservation_created_total[5m]))", "legendFormat": "created", "refId": "A"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_reservation_released_total[5m]))", "legendFormat": "released", "refId": "B"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_reservation_expired_total[5m]))", "legendFormat": "expired", "refId": "C"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_reservation_failed_total[5m]))", "legendFormat": "failed", "refId": "D"}
+      ]
+    },
+    {
+      "title": "Liquidity Funding & Position",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(businessos_treasury_liquidity_funding_planned_total[5m]))", "legendFormat": "funding planned", "refId": "A"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_funding_executed_total[5m]))", "legendFormat": "funding executed", "refId": "B"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_funding_failed_total[5m]))", "legendFormat": "funding failed", "refId": "C"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_position_updated_total[5m]))", "legendFormat": "position updated", "refId": "D"},
+        {"expr": "sum(rate(businessos_treasury_liquidity_observation_recorded_total[5m]))", "legendFormat": "observations", "refId": "E"}
+      ]
+    },
+    {
       "title": "Security Engine Decisions",
       "type": "timeseries",
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 24},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {"expr": "sum(rate(businessos_security_auth_allowed_total{engine=~\"$engine\"}[5m]))", "legendFormat": "allowed", "refId": "A"},
@@ -90,7 +115,7 @@
     {
       "title": "Merchant Lifecycle",
       "type": "timeseries",
-      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 24},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {"expr": "sum(rate(businessos_merchant_created_total{engine=~\"$engine\"}[5m]))", "legendFormat": "created", "refId": "A"},
@@ -101,13 +126,15 @@
     {
       "title": "Domain Latencies (p95)",
       "type": "timeseries",
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 22},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 30},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_payment_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "payment", "refId": "A"},
         {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_fraud_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "fraud", "refId": "B"},
         {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_settlement_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "settlement", "refId": "C"},
-        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_payout_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "payout", "refId": "D"}
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_payout_latency_seconds_bucket{engine=~\"$engine\"}[5m])))", "legendFormat": "payout", "refId": "D"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_treasury_liquidity_reservation_latency_seconds_bucket[5m])))", "legendFormat": "liquidity reservation", "refId": "E"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(businessos_treasury_liquidity_funding_latency_seconds_bucket[5m])))", "legendFormat": "funding", "refId": "F"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}}
     }

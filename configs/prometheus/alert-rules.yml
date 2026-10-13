@@ -162,3 +162,41 @@ groups:
         annotations:
           summary: "Domain latency spike (3x 1h baseline)"
           description: "p95 latency is more than 3 times the recent baseline."
+
+  - name: businessos-liquidity
+    rules:
+      - alert: LiquidityReservationFailureHigh
+        expr: rate(businessos_treasury_liquidity_reservation_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "High liquidity reservation failure rate"
+          description: "Reservation failures exceeded threshold. Check LiquidityReservationService."
+
+      - alert: LiquidityFundingFailed
+        expr: rate(businessos_treasury_liquidity_funding_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: high
+        annotations:
+          summary: "Liquidity funding failures detected"
+          description: "Funding executions are failing. Review FundingService and liquidity position."
+
+      - alert: LiquidityInsufficientSpike
+        expr: rate(businessos_treasury_liquidity_insufficient_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Liquidity insufficient events spiking"
+          description: "Frequent insufficient liquidity. Review cash position and funding plans."
+
+      - alert: LiquidityReservationLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(businessos_treasury_liquidity_reservation_latency_seconds_bucket[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Liquidity reservation p95 latency above 1s"
+          description: "Reservation path is slow."
