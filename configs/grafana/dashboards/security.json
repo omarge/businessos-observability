@@ -1,0 +1,26 @@
+{
+  "title": "Security Decisions",
+  "uid": "businessos-security",
+  "tags": ["businessos", "security"],
+  "panels": [
+    {
+      "title": "Allowed vs Denied",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(businessos_integration_security_allowed_total[5m])", "legendFormat": "allowed", "refId": "A" },
+        { "expr": "rate(businessos_integration_security_denied_total[5m])", "legendFormat": "denied", "refId": "B" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Denial Reasons",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(businessos_integration_security_tenant_mismatch_total[5m])", "legendFormat": "tenant_mismatch", "refId": "A" },
+        { "expr": "rate(businessos_integration_security_producer_rejected_total[5m])", "legendFormat": "producer_rejected", "refId": "B" },
+        { "expr": "rate(businessos_integration_security_consumer_rejected_total[5m])", "legendFormat": "consumer_rejected", "refId": "C" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    }
+  ]
+}
