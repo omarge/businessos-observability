@@ -1,5 +1,8 @@
+global:
+  resolve_timeout: 5m
+
 route:
-  group_by: ['alertname', 'severity', 'engine']
+  group_by: ['alertname', 'severity', 'tenant', 'engine', 'job']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
@@ -9,9 +12,18 @@ route:
         severity: critical
       receiver: 'critical'
       continue: true
+      group_wait: 10s
     - match:
         severity: high
       receiver: 'high'
+      continue: true
+    - match:
+        severity: warning
+      receiver: 'warning'
+    - match_re:
+        alertname: 'Security.*|Compliance.*|Tenant.*'
+      receiver: 'security-compliance'
+      continue: true
 
 receivers:
   - name: 'default'
@@ -19,13 +31,31 @@ receivers:
     #   - url: 'http://your-webhook'
 
   - name: 'critical'
-    # Configure Slack / PagerDuty / email here
+    # Slack / PagerDuty / email for money-critical and liveness
+    # webhook_configs:
+    #   - url: 'http://pagerduty-or-slack-critical'
 
   - name: 'high'
+    # webhook_configs:
+    #   - url: 'http://slack-high'
+
+  - name: 'warning'
+    # webhook_configs:
+    #   - url: 'http://slack-warnings'
+
+  - name: 'security-compliance'
+    # Dedicated channel for security denials, tenant isolation, audit, compliance
+    # webhook_configs:
+    #   - url: 'http://security-channel'
 
 inhibit_rules:
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
-    equal: ['alertname']
+    equal: ['alertname', 'tenant']
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'high'
+    equal: ['alertname', 'tenant']
