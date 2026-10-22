@@ -92,11 +92,11 @@ sequenceDiagram
 
 ```bash
 cp .env.example .env
-# Edita .env con los endpoints de Kafka/Postgres si es necesario
+# Define una contraseña única en GF_SECURITY_ADMIN_PASSWORD en .env; añade endpoints de Kafka/Postgres si es necesario
 docker compose up -d
 ```
 
-Abre Grafana: http://localhost:3000 (admin / admin)
+Abre Grafana: http://localhost:3000 (usuario: `admin`; contraseña: el valor definido en `GF_SECURITY_ADMIN_PASSWORD`).
 
 Los dashboards pre-provisionados aparecen en la carpeta **BusinessOS**.
 
