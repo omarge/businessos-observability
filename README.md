@@ -123,11 +123,11 @@ Dashboards appear under the **BusinessOS** folder after `docker compose up`.
 
 ```bash
 cp .env.example .env
-# Edit .env with your Kafka/Postgres endpoints if needed
+# Set a unique GF_SECURITY_ADMIN_PASSWORD in .env; add Kafka/Postgres endpoints if needed
 docker compose up -d
 ```
 
-Open Grafana: http://localhost:3000 (admin / admin)
+Open Grafana: http://localhost:3000 (username: `admin`, password: the value you set for `GF_SECURITY_ADMIN_PASSWORD`).
 
 ## Instrumenting engines
 
